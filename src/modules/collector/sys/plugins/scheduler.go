@@ -28,30 +28,29 @@ func NewPluginScheduler(p *Plugin) *PluginScheduler {
 	return &scheduler
 }
 
-func (this *PluginScheduler) Schedule() {
+func (p *PluginScheduler) Schedule() {
 	go func() {
 		for {
 			select {
-			case <-this.Ticker.C:
-				PluginRun(this.Plugin)
-			case <-this.Quit:
-				this.Ticker.Stop()
+			case <-p.Ticker.C:
+				PluginRun(p.Plugin)
+			case <-p.Quit:
+				p.Ticker.Stop()
 				return
 			}
 		}
 	}()
 }
 
-func (this *PluginScheduler) Stop() {
-	close(this.Quit)
+func (p *PluginScheduler) Stop() {
+	close(p.Quit)
 }
 
 func PluginRun(plugin *Plugin) {
 
 	timeout := plugin.Cycle*1000 - 500 //比运行周期少500毫秒
 
-	fpath := filepath.Join(file.SelfDir(), plugin.FilePath)
-
+	fpath := plugin.FilePath
 	if !file.IsExist(fpath) {
 		logger.Error("no such plugin:", fpath)
 		return
