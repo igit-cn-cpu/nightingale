@@ -38,7 +38,9 @@ func (e *EndpointIndexMap) Push(item dataobj.IndexModel, now int64) {
 		metricIndexMap.SetMetricIndex(metric, NewMetricIndex(item, tags, now))
 		return
 	}
+	metricIndexMap.Lock()
 	metricIndex.Set(item, tags, now)
+	metricIndexMap.Unlock()
 }
 
 func (e *EndpointIndexMap) Clean(timeDuration int64) {
@@ -130,4 +132,11 @@ func (e *EndpointIndexMap) GetEndpoints() []string {
 		i++
 	}
 	return ret
+}
+
+func (e *EndpointIndexMap) DelByEndpoint(endpoint string) {
+	e.Lock()
+	defer e.Unlock()
+
+	delete(e.M, endpoint)
 }

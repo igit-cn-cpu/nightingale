@@ -12,16 +12,18 @@ import (
 
 type Collect struct {
 	sync.RWMutex
-	Ports map[int]*PortCollect    `json:"ports"`
-	Procs map[string]*ProcCollect `json:"procs"`
-	Logs  map[string]*LogCollect  `json:"logs"`
+	Ports   map[int]*PortCollect      `json:"ports"`
+	Procs   map[string]*ProcCollect   `json:"procs"`
+	Logs    map[string]*LogCollect    `json:"logs"`
+	Plugins map[string]*PluginCollect `json:"plugins"`
 }
 
 func NewCollect() *Collect {
 	return &Collect{
-		Ports: make(map[int]*PortCollect),
-		Procs: make(map[string]*ProcCollect),
-		Logs:  make(map[string]*LogCollect),
+		Ports:   make(map[int]*PortCollect),
+		Procs:   make(map[string]*ProcCollect),
+		Logs:    make(map[string]*LogCollect),
+		Plugins: make(map[string]*PluginCollect),
 	}
 }
 
@@ -44,6 +46,12 @@ func (c *Collect) Update(cc *Collect) {
 	c.Logs = make(map[string]*LogCollect)
 	for k, v := range cc.Logs {
 		c.Logs[k] = v
+	}
+
+	//更新plugin采集配置
+	c.Plugins = make(map[string]*PluginCollect)
+	for k, v := range cc.Plugins {
+		c.Plugins[k] = v
 	}
 }
 
@@ -75,6 +83,17 @@ func (c *Collect) GetLogConfig() map[string]*LogCollect {
 
 	tmp := make(map[string]*LogCollect)
 	for k, v := range c.Logs {
+		tmp[k] = v
+	}
+	return tmp
+}
+
+func (c *Collect) GetPlugin() map[string]*PluginCollect {
+	c.RLock()
+	defer c.RUnlock()
+
+	tmp := make(map[string]*PluginCollect)
+	for k, v := range c.Plugins {
 		tmp[k] = v
 	}
 	return tmp
@@ -112,6 +131,21 @@ type ProcCollect struct {
 
 	Target        string `json:"target"`
 	CollectMethod string `json:"collect_method"`
+}
+
+type PluginCollect struct {
+	Id          int64     `json:"id"`
+	Nid         int64     `json:"nid"`
+	CollectType string    `json:"collect_type"`
+	Name        string    `json:"name"`
+	Step        int       `json:"step"`
+	FilePath    string    `json:"file_path"`
+	Params      string    `json:"params"`
+	Comment     string    `json:"comment"`
+	Creator     string    `json:"creator"`
+	Created     time.Time `xorm:"updated" json:"created"`
+	LastUpdator string    `xorm:"last_updator" json:"last_updator"`
+	LastUpdated time.Time `xorm:"updated" json:"last_updated"`
 }
 
 type LogCollect struct {
@@ -289,6 +323,44 @@ func (l *LogCollect) Update() error {
 	return err
 }
 
+func GetPluginCollects() ([]*PluginCollect, error) {
+	collects := []*PluginCollect{}
+	err := DB["mon"].Find(&collects)
+	return collects, err
+}
+
+func (p *PluginCollect) Update() error {
+	session := DB["mon"].NewSession()
+	defer session.Close()
+
+	err := session.Begin()
+	if err != nil {
+		return err
+	}
+
+	if _, err = session.Id(p.Id).AllCols().Update(p); err != nil {
+		session.Rollback()
+		return err
+	}
+
+	b, err := json.Marshal(p)
+	if err != nil {
+		session.Rollback()
+		return err
+	}
+
+	if err := saveHist(p.Id, "plugin", "update", p.Creator, string(b), session); err != nil {
+		session.Rollback()
+		return err
+	}
+
+	if err = session.Commit(); err != nil {
+		return err
+	}
+
+	return err
+}
+
 func CreateCollect(collectType, creator string, collect interface{}) error {
 	session := DB["mon"].NewSession()
 	defer session.Close()
@@ -345,6 +417,14 @@ func GetCollectByNid(collectType string, nids []int64) ([]interface{}, error) {
 		}
 		return res, err
 
+	case "plugin":
+		collects := []PluginCollect{}
+		err := DB["mon"].In("nid", nids).Find(&collects)
+		for _, c := range collects {
+			res = append(res, c)
+		}
+		return res, err
+
 	default:
 		return nil, fmt.Errorf("illegal collectType")
 	}
@@ -365,6 +445,10 @@ func GetCollectById(collectType string, cid int64) (interface{}, error) {
 		collect := new(LogCollect)
 		_, err := DB["mon"].Where("id = ?", cid).Get(collect)
 		collect.Decode()
+		return collect, err
+	case "plugin":
+		collect := new(PluginCollect)
+		_, err := DB["mon"].Where("id = ?", cid).Get(collect)
 		return collect, err
 
 	default:
@@ -413,17 +497,4 @@ func saveHist(id int64, tp string, action, username, body string, session *xorm.
 	}
 
 	return err
-}
-
-func GetCollectsModel(t string) (interface{}, error) {
-	collects := make([]*PortCollect, 0)
-	switch t {
-	case "port":
-		return collects, nil
-	case "proc":
-		return collects, nil
-
-	default:
-		return nil, fmt.Errorf("illegal collectType")
-	}
 }

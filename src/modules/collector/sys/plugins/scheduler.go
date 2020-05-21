@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/toolkits/pkg/file"
@@ -57,7 +58,8 @@ func PluginRun(plugin *Plugin) {
 	}
 
 	logger.Debug(fpath, " running")
-	cmd := exec.Command(fpath)
+	params := strings.Split(plugin.Params, " ")
+	cmd := exec.Command(fpath, params...)
 	cmd.Dir = filepath.Dir(fpath)
 	var stdout bytes.Buffer
 	cmd.Stdout = &stdout
@@ -97,9 +99,11 @@ func PluginRun(plugin *Plugin) {
 	// exec successfully
 	data := stdout.Bytes()
 	if len(data) == 0 {
-		logger.Debug("stdout of", fpath, "is blank")
+		logger.Debug("stdout of ", fpath, " is blank")
 		return
 	}
+
+	logger.Debug(fpath, " stdout: ", string(data))
 
 	var items []*dataobj.MetricValue
 	err = json.Unmarshal(data, &items)
@@ -111,6 +115,10 @@ func PluginRun(plugin *Plugin) {
 	if len(items) == 0 {
 		logger.Debugf("%s item result is empty", fpath)
 		return
+	}
+
+	for i := 0; i < len(items); i++ {
+		items[i].Step = int64(plugin.Cycle)
 	}
 
 	funcs.Push(items)
