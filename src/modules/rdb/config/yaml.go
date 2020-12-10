@@ -6,6 +6,7 @@ import (
 	"github.com/toolkits/pkg/file"
 
 	"github.com/didi/nightingale/src/common/loggeri"
+	"github.com/didi/nightingale/src/toolkits/i18n"
 )
 
 type ConfigT struct {
@@ -17,15 +18,32 @@ type ConfigT struct {
 	Redis    redisSection             `yaml:"redis"`
 	Sender   map[string]senderSection `yaml:"sender"`
 	RabbitMQ rabbitmqSection          `yaml:"rabbitmq"`
+	WeChat   wechatSection            `yaml:"wechat"`
+	Captcha  bool                     `yaml:"captcha"`
+	I18n     i18n.I18nSection         `yaml:"i18n"`
+}
+
+type wechatSection struct {
+	CorpID  string `yaml:"corp_id"`
+	AgentID int    `yaml:"agent_id"`
+	Secret  string `yaml:"secret"`
 }
 
 type ssoSection struct {
-	Enable       bool   `yaml:"enable"`
-	RedirectURL  string `yaml:"redirectURL"`
-	SsoAddr      string `yaml:"ssoAddr"`
-	ClientId     string `yaml:"clientId"`
-	ClientSecret string `yaml:"clientSecret"`
-	ApiKey       string `yaml:"apiKey"`
+	Enable          bool   `yaml:"enable"`
+	RedirectURL     string `yaml:"redirectURL"`
+	SsoAddr         string `yaml:"ssoAddr"`
+	ClientId        string `yaml:"clientId"`
+	ClientSecret    string `yaml:"clientSecret"`
+	ApiKey          string `yaml:"apiKey"`
+	StateExpiresIn  int64  `yaml:"stateExpiresIn"`
+	CoverAttributes bool   `yaml:"coverAttributes"`
+	Attributes      struct {
+		Dispname string `yaml:"dispname"`
+		Phone    string `yaml:"phone"`
+		Email    string `yaml:"email"`
+		Im       string `yaml:"im"`
+	} `yaml:"attributes"`
 }
 
 type httpSection struct {
@@ -98,6 +116,14 @@ func Parse() error {
 
 	Config = &c
 	fmt.Println("config.file:", ymlFile)
+
+	if Config.I18n.DictPath == "" {
+		Config.I18n.DictPath = "etc/dict.json"
+	}
+
+	if Config.I18n.Lang == "" {
+		Config.I18n.Lang = "zh"
+	}
 
 	if err = parseOps(); err != nil {
 		return err

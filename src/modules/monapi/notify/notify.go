@@ -189,7 +189,10 @@ func genContent(isUpgrade bool, events []*models.Event) (string, string) {
 
 	// 生成告警短信，短信和IM复用一个内容模板
 	fp = path.Join(file.SelfDir(), "etc", "sms.tpl")
-	t, err = template.ParseFiles(fp)
+	t, err = template.New("sms.tpl").Funcs(template.FuncMap{
+		"unescaped":  func(str string) interface{} { return template.HTML(str) },
+		"urlconvert": func(str string) interface{} { return template.URL(str) },
+	}).ParseFiles(fp)
 	if err != nil {
 		logger.Errorf("InternalServerError: cannot parse %s %v", fp, err)
 		smsContent = fmt.Sprintf("InternalServerError: cannot parse %s %v", fp, err)
@@ -268,6 +271,10 @@ func HostBindingsForMon(endpointList []string) ([]string, error) {
 		node, err := models.NodeGet("id=?", id)
 		if err != nil {
 			return list, err
+		}
+
+		if node == nil {
+			continue
 		}
 
 		list = append(list, node.Path)
@@ -370,7 +377,7 @@ func send(tos []string, content, subject, notifyType string) error {
 			url = "http://" + url
 		}
 
-		res, code, err := httplib.PostJSON(url, time.Second*5, data, map[string]string{"x-srv-token": "rdb-builtin-token"})
+		res, code, err := httplib.PostJSON(url, time.Second*5, data, map[string]string{"X-Srv-Token": "rdb-builtin-token"})
 		if err != nil {
 			logger.Errorf("call sender api failed, server: %v, data: %+v, err: %v, resp:%v, status code:%d", url, data, err, string(res), code)
 			continue
@@ -384,6 +391,8 @@ func send(tos []string, content, subject, notifyType string) error {
 		if err == nil {
 			break
 		}
+
+		logger.Infof("curl %s response: %s", url, string(res))
 	}
 
 	return err
@@ -436,7 +445,7 @@ func send2Ticket(content, subject, hashId string, prio int, eventType string, wo
 			Info: info,
 		}
 
-		res, code, err := httplib.PostJSON(url, time.Second*5, req, map[string]string{"x-srv-token": "ticket-builtin-token"})
+		res, code, err := httplib.PostJSON(url, time.Second*5, req, map[string]string{"X-Srv-Token": "ticket-builtin-token"})
 		if err != nil {
 			logger.Errorf("call ticket api failed, server: %v, data: %+v, err: %v, resp:%v, status code:%d", url, req, err, string(res), code)
 			return

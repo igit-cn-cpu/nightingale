@@ -16,6 +16,7 @@ import (
 	"github.com/didi/nightingale/src/modules/monapi/http"
 	"github.com/didi/nightingale/src/modules/monapi/redisc"
 	"github.com/didi/nightingale/src/modules/monapi/scache"
+	"github.com/didi/nightingale/src/toolkits/i18n"
 
 	_ "github.com/go-sql-driver/mysql"
 
@@ -30,8 +31,7 @@ var (
 	help *bool
 	conf *string
 
-	gitHash   = "No GitHash Provided"
-	buildTime = "No BuildTime Provided"
+	version = "No Version Provided"
 )
 
 func init() {
@@ -41,8 +41,7 @@ func init() {
 	flag.Parse()
 
 	if *vers {
-		fmt.Println("Git Commit Hash:", gitHash)
-		fmt.Println("UTC Build Time:", buildTime)
+		fmt.Println("Version:", version)
 		os.Exit(0)
 	}
 
@@ -63,9 +62,11 @@ func main() {
 
 	cache.InitMemoryCache(time.Hour)
 	config.InitLogger()
-	models.InitMySQL("mon", "hbs", "rdb")
+	models.InitMySQL("mon", "rdb")
 
 	scache.Init()
+
+	i18n.Init(config.Get().I18n)
 
 	if err := scache.CheckJudge(); err != nil {
 		logger.Errorf("check judge fail: %v", err)

@@ -21,7 +21,7 @@ func GetCookieUser() gin.HandlerFunc {
 		}
 
 		if username == "" {
-			errors.Bomb("unauthorized")
+			bomb("unauthorized")
 		}
 
 		c.Set("username", username)
@@ -39,7 +39,7 @@ func cookieUser(c *gin.Context) string {
 }
 
 func headerUser(c *gin.Context) string {
-	token := c.GetHeader("x-user-token")
+	token := c.GetHeader("X-User-Token")
 	if token == "" {
 		return ""
 	}
@@ -56,12 +56,12 @@ func headerUser(c *gin.Context) string {
 
 const internalToken = "monapi-builtin-token"
 
-// CheckHeaderToken check thirdparty x-srv-token
+// CheckHeaderToken check thirdparty X-Srv-Token
 func CheckHeaderToken() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		token := c.GetHeader("x-srv-token")
+		token := c.GetHeader("X-Srv-Token")
 		if token != internalToken && !slice.ContainsString(config.Get().Tokens, token) {
-			errors.Bomb("token[%s] invalid", token)
+			bomb("token[%s] invalid", token)
 		}
 		c.Next()
 	}

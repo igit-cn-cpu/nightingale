@@ -32,9 +32,7 @@ var (
 	help *bool
 	conf *string
 
-	version   = "No Version Provided"
-	gitHash   = "No GitHash Provided"
-	buildTime = "No BuildTime Provided"
+	version = "No Version Provided"
 )
 
 func init() {
@@ -45,8 +43,6 @@ func init() {
 
 	if *vers {
 		fmt.Println("Version:", version)
-		fmt.Println("Git Commit Hash:", gitHash)
-		fmt.Println("UTC Build Time:", buildTime)
 		os.Exit(0)
 	}
 
@@ -66,7 +62,7 @@ func main() {
 	loggeri.Init(cfg.Logger)
 	go stats.Init("n9e.judge")
 
-	query.Init(cfg.Query, "monapi")
+	query.Init(cfg.Query, "rdb")
 	redi.Init(cfg.Redis)
 
 	cache.InitHistoryBigMap()
@@ -78,7 +74,7 @@ func main() {
 
 	go stra.GetStrategy(cfg.Strategy)
 	go judge.NodataJudge(cfg.NodataConcurrency)
-	go report.Init(cfg.Report, "monapi")
+	go report.Init(cfg.Report, "rdb")
 
 	if cfg.Logger.Level != "DEBUG" {
 		gin.SetMode(gin.ReleaseMode)

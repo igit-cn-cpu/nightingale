@@ -34,6 +34,7 @@ _test
 /etc/log/log.test.json
 /data*
 /tarball
+/run
 
 .idea
 .index
@@ -53,4 +54,6 @@ _test
 /src/modules/transfer/transfer
 /src/modules/tsdb/tsdb
 
-
+tmp/
+main
+Makefile

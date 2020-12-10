@@ -28,9 +28,7 @@ var (
 	help *bool
 	conf *string
 
-	version   = "No Version Provided"
-	gitHash   = "No GitHash Provided"
-	buildTime = "No BuildTime Provided"
+	version = "No Version Provided"
 )
 
 func init() {
@@ -41,8 +39,6 @@ func init() {
 
 	if *vers {
 		fmt.Println("Version:", version)
-		fmt.Println("Git Commit Hash:", gitHash)
-		fmt.Println("UTC Build Time:", buildTime)
 		os.Exit(0)
 	}
 
@@ -65,7 +61,7 @@ func main() {
 	identity.Parse()
 	cache.InitDB(cfg.Cache)
 
-	go report.Init(cfg.Report, "monapi")
+	go report.Init(cfg.Report, "rdb")
 	go rpc.Start()
 
 	r := gin.New()

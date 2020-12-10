@@ -10,11 +10,20 @@ http:
 
 sso:
   enable: false
-  ssoAddr: "http://10.1.2.3:8071"
-  redirectURL: "http://10.1.2.3:8072/api/rdb/auth/callback"
+  ssoAddr: "http://{sso-host}"
+  redirectURL: "http://{rdb-host}/auth-callback"
   clientId: ""
   clientSecret: ""
   apiKey: ""
+  attributes:
+    dispname: "display_name"
+    email: "email"
+    phone: "phone"
+    im: ""
+  coverAttributes: false
+  stateExpiresIn: 300
+
+captcha: false
 
 tokens:
   - rdb-builtin-token
@@ -73,7 +82,12 @@ sender:
     worker: 10
     api: http://127.0.0.1:2008/voice
   im:
-    # two choice: shell|api
+    # five choice: shell|api|wechat|wechat_robot|dingtalk_robot
     way: shell
     worker: 10
     api: http://127.0.0.1:2008/im
+
+wechat:
+  corp_id: "xxxxxxxxxxxxx"
+  agent_id: 1000000
+  secret: "xxxxxxxxxxxxxxxxx"

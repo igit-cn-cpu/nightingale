@@ -6,7 +6,7 @@ func Config(r *gin.Engine) {
 	notLogin := r.Group("/api/job-ce")
 	{
 		notLogin.GET("/ping", ping)
-		notLogin.GET("/callback", taskCallback)
+		notLogin.POST("/callback", taskCallback)
 		notLogin.GET("/task/:id/stdout", taskStdout)
 		notLogin.GET("/task/:id/stderr", taskStderr)
 		notLogin.GET("/task/:id/state", apiTaskState)
@@ -36,5 +36,8 @@ func Config(r *gin.Engine) {
 		userLogin.GET("/task/:id", taskView)
 		userLogin.PUT("/task/:id/action", taskActionPut)
 		userLogin.PUT("/task/:id/host", taskHostPut)
+
+		// 专门针对工单系统开发的接口
+		userLogin.POST("/run/:id", taskRunForTT)
 	}
 }
