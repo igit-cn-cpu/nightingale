@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"xorm.io/xorm"
+
+	"github.com/toolkits/pkg/logger"
 )
 
 type Stra struct {
@@ -38,19 +40,21 @@ type Stra struct {
 	WorkGroupsStr       string    `xorm:"work_groups" json:"-"`
 	Runbook             string    `xorm:"runbook" json:"runbook"`
 
-	ExclNid          []int64      `xorm:"-" json:"excl_nid"`
-	Nids             []string     `xorm:"-" json:"nids"`
-	Exprs            []Exp        `xorm:"-" json:"exprs"`
-	Tags             []Tag        `xorm:"-" json:"tags"`
-	EnableDaysOfWeek []int        `xorm:"-" json:"enable_days_of_week"`
-	Converge         []int        `xorm:"-" json:"converge"`
-	NotifyGroup      []int        `xorm:"-" json:"notify_group"`
-	NotifyUser       []int        `xorm:"-" json:"notify_user"`
-	LeafNids         []int64      `xorm:"-" json:"leaf_nids"` //叶子节点id
-	Endpoints        []string     `xorm:"-" json:"endpoints"`
-	AlertUpgrade     AlertUpgrade `xorm:"-" json:"alert_upgrade"`
-	JudgeInstance    string       `xorm:"-" json:"judge_instance"`
-	WorkGroups       []int        `xorm:"-" json:"work_groups"`
+	ExclNid           []int64      `xorm:"-" json:"excl_nid"`
+	Nids              []string     `xorm:"-" json:"nids"`
+	Exprs             []Exp        `xorm:"-" json:"exprs"`
+	Tags              []Tag        `xorm:"-" json:"tags"`
+	EnableDaysOfWeek  []int        `xorm:"-" json:"enable_days_of_week"`
+	Converge          []int        `xorm:"-" json:"converge"`
+	NotifyGroup       []int64      `xorm:"-" json:"notify_group"`
+	NotifyGroupDetail []Team       `xorm:"-" json:"notify_group_detail"`
+	NotifyUser        []int64      `xorm:"-" json:"notify_user"`
+	NotifyUserDetail  []User       `xorm:"-" json:"notify_user_detail"`
+	LeafNids          []int64      `xorm:"-" json:"leaf_nids"` //叶子节点id
+	Endpoints         []string     `xorm:"-" json:"endpoints"`
+	AlertUpgrade      AlertUpgrade `xorm:"-" json:"alert_upgrade"`
+	JudgeInstance     string       `xorm:"-" json:"judge_instance"`
+	WorkGroups        []int        `xorm:"-" json:"work_groups"`
 }
 
 func (s *Stra) GetMetric() string {
@@ -179,6 +183,20 @@ func (s *Stra) Update() error {
 func StraGet(col string, val interface{}) (*Stra, error) {
 	var obj Stra
 	has, err := DB["mon"].Where(col+"=?", val).Get(&obj)
+	if err != nil {
+		return nil, err
+	}
+
+	if !has {
+		return nil, nil
+	}
+
+	return &obj, nil
+}
+
+func StraFindOne(where string, args ...interface{}) (*Stra, error) {
+	var obj Stra
+	has, err := DB["mon"].Where(where, args...).Get(&obj)
 	if err != nil {
 		return nil, err
 	}
@@ -448,47 +466,68 @@ func (s *Stra) Decode() error {
 
 	s.AlertUpgrade, err = AlertUpgradeUnMarshal(s.AlertUpgradeStr)
 	if err != nil {
+		logger.Errorf("decode strategy(%d) on AlertUpgradeStr fail: %v", s.Id, err)
 		return err
 	}
 
 	err = json.Unmarshal([]byte(s.ExclNidStr), &s.ExclNid)
 	if err != nil {
+		logger.Errorf("decode strategy(%d) on ExclNid fail: %v", s.Id, err)
 		return err
 	}
 
 	err = json.Unmarshal([]byte(s.ExprsStr), &s.Exprs)
 	if err != nil {
+		logger.Errorf("decode strategy(%d) on Exprs fail: %v", s.Id, err)
 		return err
 	}
 
 	err = json.Unmarshal([]byte(s.TagsStr), &s.Tags)
 	if err != nil {
+		logger.Errorf("decode strategy(%d) on Tags fail: %v", s.Id, err)
 		return err
 	}
 
 	err = json.Unmarshal([]byte(s.EnableDaysOfWeekStr), &s.EnableDaysOfWeek)
 	if err != nil {
+		logger.Errorf("decode strategy(%d) on EnableDaysOfWeek fail: %v", s.Id, err)
 		return err
 	}
 
 	err = json.Unmarshal([]byte(s.ConvergeStr), &s.Converge)
 	if err != nil {
+		logger.Errorf("decode strategy(%d) on Converge fail: %v", s.Id, err)
 		return err
 	}
 
 	err = json.Unmarshal([]byte(s.NotifyUserStr), &s.NotifyUser)
 	if err != nil {
+		logger.Errorf("decode strategy(%d) on NotifyUser fail: %v", s.Id, err)
+		return err
+	}
+
+	s.NotifyUserDetail, err = UserGetsByIds(s.NotifyUser)
+	if err != nil {
+		logger.Errorf("decode strategy(%d) on NotifyUserDetail fail: %v", s.Id, err)
 		return err
 	}
 
 	err = json.Unmarshal([]byte(s.NotifyGroupStr), &s.NotifyGroup)
 	if err != nil {
+		logger.Errorf("decode strategy(%d) on NotifyGroup fail: %v", s.Id, err)
+		return err
+	}
+
+	s.NotifyGroupDetail, err = TeamGetsInIds(s.NotifyGroup, "", 10000, 0)
+	if err != nil {
+		logger.Errorf("decode strategy(%d) on NotifyGroupDetail fail: %v", s.Id, err)
 		return err
 	}
 
 	if s.WorkGroupsStr != "" {
 		err = json.Unmarshal([]byte(s.WorkGroupsStr), &s.WorkGroups)
 		if err != nil {
+			logger.Errorf("decode strategy(%d) on WorkGroups fail: %v", s.Id, err)
 			return err
 		}
 	}

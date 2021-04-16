@@ -11,7 +11,7 @@ create table `maskconf` (
   `metric` varchar(255) not null,
   `tags` varchar(255) not null default '',
   `cause` varchar(255) not null default '',
-  `user` varchar(32) not null default 'operate user',
+  `user` varchar(64) not null default 'operate user',
   `btime` bigint not null default 0 comment 'begin time',
   `etime` bigint not null default 0 comment 'end time',
   primary key (`id`),
@@ -176,7 +176,7 @@ CREATE TABLE `stra_log` (
   `sid` bigint(20) NOT NULL DEFAULT '0' COMMENT 'collect id',
   `action` varchar(255) NOT NULL DEFAULT '' COMMENT '动作 update, delete',
   `body` text COMMENT '修改之前采集的内容',
-  `creator` varchar(255) NOT NULL DEFAULT '' COMMENT 'creator',
+  `creator` varchar(64) NOT NULL DEFAULT '' COMMENT 'creator',
   `created` timestamp NOT NULL DEFAULT '1971-01-01 00:00:00' COMMENT 'created',
   PRIMARY KEY (`id`),
   KEY `idx_sid` (`sid`)
@@ -192,9 +192,9 @@ CREATE TABLE `port_collect` (
   `step` int(11) NOT NULL DEFAULT '0' COMMENT '采集周期',
   `timeout` int(11) NOT NULL DEFAULT '0' COMMENT 'connect time',
   `comment` varchar(512) NOT NULL DEFAULT '' COMMENT 'comment',
-  `creator` varchar(255) NOT NULL DEFAULT '' COMMENT 'creator',
+  `creator` varchar(64) NOT NULL DEFAULT '' COMMENT 'creator',
   `created` datetime NOT NULL COMMENT 'created',
-  `last_updator` varchar(128) NOT NULL DEFAULT '' COMMENT 'last_updator',
+  `last_updator` varchar(64) NOT NULL DEFAULT '' COMMENT 'last_updator',
   `last_updated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'last_updated',
   PRIMARY KEY (`id`),
   KEY `idx_nid` (`nid`),
@@ -211,9 +211,9 @@ CREATE TABLE `proc_collect` (
   `target` varchar(255) NOT NULL DEFAULT '' COMMENT '采集对象',
   `step` int(11) NOT NULL DEFAULT '0' COMMENT '采集周期',
   `comment` varchar(512) NOT NULL DEFAULT '' COMMENT 'comment',
-  `creator` varchar(255) NOT NULL DEFAULT '' COMMENT 'creator',
+  `creator` varchar(64) NOT NULL DEFAULT '' COMMENT 'creator',
   `created` datetime NOT NULL  COMMENT 'created',
-  `last_updator` varchar(128) NOT NULL DEFAULT '' COMMENT 'last_updator',
+  `last_updator` varchar(64) NOT NULL DEFAULT '' COMMENT 'last_updator',
   `last_updated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_nid` (`nid`),
@@ -237,10 +237,11 @@ CREATE TABLE `log_collect` (
   `unit` varchar(64) NOT NULL DEFAULT '' COMMENT 'unit',
   `zero_fill` tinyint(4) NOT NULL DEFAULT '0' COMMENT 'zero fill',
   `comment` varchar(512) NOT NULL DEFAULT '' COMMENT 'comment',
-  `creator` varchar(255) NOT NULL DEFAULT '' COMMENT 'creator',
+  `creator` varchar(64) NOT NULL DEFAULT '' COMMENT 'creator',
   `created` datetime NOT NULL  COMMENT 'created',
-  `last_updator` varchar(128) NOT NULL DEFAULT '' COMMENT 'last_updator',
+  `last_updator` varchar(64) NOT NULL DEFAULT '' COMMENT 'last_updator',
   `last_updated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `whether_attach_one_log_line` tinyint(1) not null default 0,
   PRIMARY KEY (`id`),
   KEY `idx_nid` (`nid`),
   KEY `idx_collect_type` (`collect_type`)
@@ -257,9 +258,9 @@ CREATE TABLE `plugin_collect` (
   `stdin` text NOT NULL COMMENT 'stdin',
   `env` text NOT NULL COMMENT 'env',
   `comment` varchar(512) NOT NULL DEFAULT '' COMMENT 'comment',
-  `creator` varchar(255) NOT NULL DEFAULT '' COMMENT 'creator',
+  `creator` varchar(64) NOT NULL DEFAULT '' COMMENT 'creator',
   `created` datetime NOT NULL  COMMENT 'created',
-  `last_updator` varchar(128) NOT NULL DEFAULT '' COMMENT 'last_updator',
+  `last_updator` varchar(64) NOT NULL DEFAULT '' COMMENT 'last_updator',
   `last_updated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_nid` (`nid`),
@@ -286,9 +287,9 @@ CREATE TABLE `api_collect` (
   `unexpected_string` varchar(255) NOT NULL DEFAULT '' COMMENT 'unexpected_string',
   `region` varchar(32) NOT NULL DEFAULT 'default' COMMENT 'region',
   `comment` varchar(512) NOT NULL DEFAULT '' COMMENT 'comment',
-  `creator` varchar(255) NOT NULL DEFAULT '' COMMENT 'creator',
+  `creator` varchar(64) NOT NULL DEFAULT '' COMMENT 'creator',
   `created` datetime NOT NULL  COMMENT 'created',
-  `last_updator` varchar(128) NOT NULL DEFAULT '' COMMENT 'last_updator',
+  `last_updator` varchar(64) NOT NULL DEFAULT '' COMMENT 'last_updator',
   `last_updated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_nid` (`nid`),
@@ -309,9 +310,9 @@ CREATE TABLE `snmp_collect` (
   `step` int(11) NOT NULL DEFAULT '0' COMMENT 'step',
   `timeout` int(11) NOT NULL DEFAULT '0' COMMENT 'total timeout',
   `comment` varchar(512) NOT NULL DEFAULT '' COMMENT 'comment',
-  `creator` varchar(255) NOT NULL DEFAULT '' COMMENT 'creator',
+  `creator` varchar(64) NOT NULL DEFAULT '' COMMENT 'creator',
   `created` datetime NOT NULL  COMMENT 'created',
-  `last_updator` varchar(128) NOT NULL DEFAULT '' COMMENT 'last_updator',
+  `last_updator` varchar(64) NOT NULL DEFAULT '' COMMENT 'last_updator',
   `last_updated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_nid` (`nid`),
@@ -319,64 +320,25 @@ CREATE TABLE `snmp_collect` (
   KEY `idx_collect_type` (`collect_type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT 'api collect';
 
-CREATE TABLE `aggr_calc` (
+CREATE TABLE `collect_rule` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT 'id',
   `nid` bigint(20) unsigned NOT NULL DEFAULT '0' COMMENT 'nid',
-  `category` int(1) NOT NULL COMMENT '1 机器 2业务',
-  `new_metric` varchar(255) NOT NULL DEFAULT '' COMMENT 'new_metric',
-  `new_step` int(11) NOT NULL DEFAULT '0' COMMENT 'new_step',
-  `groupby` varchar(255) NOT NULL DEFAULT '' COMMENT 'groupby',
-  `raw_metrics` text comment 'raw_metrics',
-  `global_operator` varchar(32) NOT NULL DEFAULT '' COMMENT 'global_operator',
-  `expression` varchar(255) NOT NULL DEFAULT '' COMMENT 'expression',
-  `rpn` varchar(255) NOT NULL DEFAULT '' COMMENT 'rpn',
-  `status` int(1) NOT NULL COMMENT '',
-  `quota` int(10) NOT NULL COMMENT '',
-  `comment` varchar(255) NOT NULL DEFAULT '' COMMENT 'comment',
-  `creator` varchar(64) NOT NULL COMMENT '创建者',
-  `created` timestamp NOT NULL DEFAULT '1971-01-01 00:00:00' COMMENT 'created',
-  `last_updator` varchar(64) NOT NULL DEFAULT '',
-  `last_updated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `step` int(11) NOT NULL DEFAULT '0' COMMENT 'step',
+  `timeout` int(11) NOT NULL DEFAULT '0' COMMENT 'total timeout',
+  `collect_type` varchar(64) NOT NULL DEFAULT '' COMMENT 'collect plugin name',
+  `name` varchar(255) NOT NULL DEFAULT '' COMMENT 'collect rule name',
+  `region` varchar(32) NOT NULL DEFAULT 'default' COMMENT 'region',
+  `comment` varchar(512) NOT NULL DEFAULT '' COMMENT 'comment',
+  `data` blob NULL COMMENT 'data',
+  `tags` varchar(512) NOT NULL DEFAULT '' COMMENT 'tags',
+  `creator` varchar(64) NOT NULL DEFAULT '' COMMENT 'creator',
+  `updater` varchar(64) NOT NULL DEFAULT '' COMMENT 'updater',
+  `created_at` bigint not null default 0,
+  `updated_at` bigint not null default 0,
   PRIMARY KEY (`id`),
   KEY `idx_nid` (`nid`),
-  KEY `idx_new_metric` (`new_metric`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT 'aggr_calc';
-
-CREATE TABLE `nginx_log_stra` (
-  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT 'id',
-  `nid` bigint(20) unsigned NOT NULL DEFAULT '0' COMMENT 'nid',
-  `service` varchar(255) NOT NULL DEFAULT '' COMMENT 'service',
-  `interval` int(11) NOT NULL DEFAULT '0' COMMENT 'interval',
-  `domain` varchar(2048) NOT NULL DEFAULT '' COMMENT 'domain',
-  `url_path_prefix` varchar(2048) NOT NULL DEFAULT '' COMMENT 'url_path_prefix',
-  `append_tags` varchar(2048) NOT NULL DEFAULT '' COMMENT 'append_tags',
-  `creator` varchar(64) NOT NULL COMMENT '创建者',
-  `created` timestamp NOT NULL DEFAULT '1971-01-01 00:00:00' COMMENT 'created',
-  `last_updator` varchar(64) NOT NULL DEFAULT '',
-  `last_updated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `idx_nid` (`nid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT 'nginx_log_stra';
-
-CREATE TABLE `binlog_stra` (
-  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT 'id',
-  `nid` bigint(20) unsigned NOT NULL DEFAULT '0' COMMENT 'nid',
-  `metric` varchar(255) NOT NULL DEFAULT '' COMMENT 'metric',
-  `interval` int(11) NOT NULL DEFAULT '0' COMMENT 'interval',
-  `db` varchar(2048) NOT NULL DEFAULT '' COMMENT 'db',
-  `column_change` varchar(2048) NOT NULL DEFAULT '' COMMENT 'column_change',
-  `tags_column` varchar(2048) NOT NULL DEFAULT '' COMMENT 'tags_column',
-  `append_tags` varchar(2048) NOT NULL DEFAULT '' COMMENT 'append_tags',
-  `func` varchar(255) NOT NULL DEFAULT '' COMMENT 'func',
-  `sql_type` varchar(255) NOT NULL DEFAULT '' COMMENT 'sql_type',
-  `value_column` varchar(255) NOT NULL DEFAULT '' COMMENT 'value_column',
-  `creator` varchar(64) NOT NULL COMMENT '创建者',
-  `created` timestamp NOT NULL DEFAULT '1971-01-01 00:00:00' COMMENT 'created',
-  `last_updator` varchar(64) NOT NULL DEFAULT '',
-  `last_updated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `idx_nid` (`nid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT 'binlog_stra';
+  KEY `idx_collect_type` (`collect_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT 'collect rule';
 
 CREATE TABLE `collect_hist` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT 'id',
@@ -389,12 +351,3 @@ CREATE TABLE `collect_hist` (
   PRIMARY KEY (`id`),
   KEY `idx_cid` (`cid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT 'hist';
-
-
-CREATE TABLE `api_collect_sid` (
-  `id`  bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT 'id',
-  `sid` bigint(20) NOT NULL DEFAULT '0' COMMENT 'stra id',
-  `cid` bigint(20) NOT NULL DEFAULT '0' COMMENT 'collect id',
-  PRIMARY KEY (`id`),
-  KEY  (`sid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;

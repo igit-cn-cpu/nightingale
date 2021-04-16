@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/toolkits/pkg/slice"
-
 	"github.com/toolkits/pkg/str"
 )
 
@@ -411,14 +410,19 @@ func (n *Node) RoleList(username string, limit, offset int) ([]NodeRole, error) 
 
 	sql = fmt.Sprintf(sql, n.Id, n.Path+".%")
 
+	var args []interface{}
+
 	if username != "" {
-		sql += fmt.Sprintf(" and node_role.username = '%s'", username)
+		sql += fmt.Sprintf(" and node_role.username = ?")
+		args = append(args, username)
 	}
 
 	sql += " order by node.path limit ? offset ?"
+	args = append(args, limit)
+	args = append(args, offset)
 
 	var objs []NodeRole
-	err := DB["rdb"].SQL(sql, limit, offset).Find(&objs)
+	err := DB["rdb"].SQL(sql, args...).Find(&objs)
 	return objs, err
 }
 
@@ -586,7 +590,8 @@ func GetLeafNidsForMon(nid int64, exclNid []int64) ([]int64, error) {
 
 	if node == nil {
 		// 节点已经被删了，相关的告警策略也删除
-		StraDelByNid(nid)
+		// todo 逻辑需要优化
+		//StraDelByNid(nid)
 		return []int64{}, nil
 	}
 
@@ -636,6 +641,10 @@ func GetRelatedNidsForMon(nid int64, exclNid []int64) ([]int64, error) {
 	node, err := NodeGet("id=?", nid)
 	if err != nil {
 		return nids, err
+	}
+
+	if node == nil {
+		return nids, nil
 	}
 
 	nodes, err := node.RelatedNodes()

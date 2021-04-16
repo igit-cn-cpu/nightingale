@@ -1,6 +1,10 @@
 package models
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/didi/nightingale/v4/src/common/slice"
+)
 
 type NodeResource struct {
 	NodeId int64
@@ -64,7 +68,11 @@ func NodeIdsGetByResIds(rids []int64) ([]int64, error) {
 
 	var ids []int64
 	err := DB["rdb"].Table(new(NodeResource)).In("res_id", rids).Select("node_id").Find(&ids)
-	return ids, err
+	if err != nil {
+		return ids, err
+	}
+
+	return slice.Int64Set(ids), err
 }
 
 // ResIdsGetByNodeIds 根据叶子节点获取资源ID列表
@@ -75,5 +83,40 @@ func ResIdsGetByNodeIds(nids []int64) ([]int64, error) {
 
 	var ids []int64
 	err := DB["rdb"].Table(new(NodeResource)).In("node_id", nids).Select("res_id").Find(&ids)
-	return ids, err
+	if err != nil {
+		return ids, err
+	}
+
+	return slice.Int64Set(ids), err
+}
+
+// ResCountGetByNodeIdsAndWhere 根据叶子节点和Where条件获取资源数量表
+func ResCountGetByNodeIdsAndCate(nids []int64, cate string) (int, error) {
+	if len(nids) == 0 {
+		return 0, nil
+	}
+
+	var nodeRess []NodeResource
+	err := DB["rdb"].Table(new(NodeResource)).In("node_id", nids).Find(&nodeRess)
+	if err != nil {
+		return 0, err
+	}
+
+	cnt := 0
+	for _, res := range nodeRess {
+		res, err := ResourceGet("id=?", res.ResId)
+		if err != nil {
+			return 0, err
+		}
+
+		if res == nil {
+			continue
+		}
+
+		if res.Cate == cate {
+			cnt++
+		}
+	}
+
+	return cnt, nil
 }
